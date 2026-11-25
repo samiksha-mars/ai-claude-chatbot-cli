@@ -21,6 +21,11 @@ def handle_api_error(error, anthropic):
     return None
 
 
+def has_credentials(client):
+    """True if the client found an API key, auth token or credentials profile."""
+    return any(getattr(client, name, None) for name in ("api_key", "auth_token", "credentials"))
+
+
 def run(session, anthropic, input_fn=input, write=sys.stdout.write):
     write(BANNER + "\n")
     while True:
@@ -65,7 +70,12 @@ def main(argv=None):
               file=sys.stderr)
         return 1
 
-    session = ChatSession(anthropic.Anthropic(), system=args.system)
+    client = anthropic.Anthropic()
+    if not has_credentials(client):
+        print("No API key found. Set ANTHROPIC_API_KEY and try again.", file=sys.stderr)
+        return 1
+
+    session = ChatSession(client, system=args.system)
     run(session, anthropic)
     return 0
 

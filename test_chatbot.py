@@ -1,10 +1,14 @@
 """Tests use a fake client, so they run without an API key or the anthropic package."""
 
+import io
+import sys
 import types
 import unittest
+from contextlib import redirect_stderr
+from unittest import mock
 
 from chat_session import MODEL, REFUSAL_MESSAGE, ChatSession
-from chatbot import handle_api_error, run
+from chatbot import handle_api_error, has_credentials, main, run
 
 
 def text_block(text):
@@ -138,6 +142,24 @@ class HandleApiErrorTest(unittest.TestCase):
     def test_authentication_error(self):
         message = handle_api_error(fake_anthropic.AuthenticationError(), fake_anthropic)
         self.assertIn("ANTHROPIC_API_KEY", message)
+
+
+class CredentialsTest(unittest.TestCase):
+
+    def test_has_credentials(self):
+        self.assertTrue(has_credentials(types.SimpleNamespace(api_key="sk-test")))
+        self.assertTrue(has_credentials(types.SimpleNamespace(api_key=None, credentials=object())))
+        self.assertFalse(has_credentials(types.SimpleNamespace(api_key=None, auth_token=None)))
+
+    def test_missing_credentials_exit_before_chatting(self):
+        client = FakeClient()
+        client.api_key = client.auth_token = client.credentials = None
+        anthropic = types.SimpleNamespace(Anthropic=lambda: client)
+        stderr = io.StringIO()
+        with mock.patch.dict(sys.modules, anthropic=anthropic), redirect_stderr(stderr):
+            self.assertEqual(main([]), 1)
+        self.assertIn("ANTHROPIC_API_KEY", stderr.getvalue())
+        self.assertEqual(client.messages.calls, [])
 
 
 if __name__ == "__main__":
