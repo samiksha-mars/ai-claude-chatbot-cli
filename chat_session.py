@@ -32,7 +32,7 @@ class ChatSession:
                 for text in stream.text_stream:
                     on_text(text)
                 final = stream.get_final_message()
-        except Exception:
+        except BaseException:  # includes KeyboardInterrupt (Ctrl+C mid-reply)
             # Drop the unanswered user turn so the history stays valid.
             self.messages.pop()
             raise

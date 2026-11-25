@@ -8,7 +8,7 @@ A small multi-turn chatbot for the terminal powered by Claude, using the officia
 - Multi-turn conversation: Claude remembers what you said earlier in the session
 - Streams replies token by token as they are generated
 - Custom system prompt with `--system`
-- `/reset` to start a new conversation, `/quit` to exit
+- `/reset` to start a new conversation, `/quit` to exit, Ctrl+C to stop a reply
 - Friendly error messages for missing keys, rate limits and network issues
 
 ## Setup

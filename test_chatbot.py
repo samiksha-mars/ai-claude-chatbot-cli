@@ -39,7 +39,7 @@ class FakeMessages:
     def stream(self, **kwargs):
         self.calls.append({**kwargs, "messages": list(kwargs["messages"])})
         reply = self.replies.pop(0)
-        if isinstance(reply, Exception):
+        if isinstance(reply, BaseException):
             raise reply
         chunks, stop_reason = reply
         return FakeStream(chunks, stop_reason)
@@ -99,6 +99,12 @@ class ChatSessionTest(unittest.TestCase):
             session.send("hi")
         self.assertEqual(session.messages, [])
 
+    def test_interrupt_rolls_back_user_message(self):
+        session = ChatSession(FakeClient(KeyboardInterrupt()))
+        with self.assertRaises(KeyboardInterrupt):
+            session.send("hi")
+        self.assertEqual(session.messages, [])
+
 
 class RunLoopTest(unittest.TestCase):
 
@@ -132,6 +138,13 @@ class RunLoopTest(unittest.TestCase):
         output = self.run_with_inputs(session, ["one", "two"])
         self.assertIn("Rate limited", output)
         self.assertIn("ok", output)
+
+    def test_ctrl_c_during_reply_keeps_chatting(self):
+        session = ChatSession(FakeClient(KeyboardInterrupt(), (["still here"], "end_turn")))
+        output = self.run_with_inputs(session, ["one", "two"])
+        self.assertIn("[Reply interrupted.]", output)
+        self.assertIn("claude> still here", output)
+        self.assertEqual([m["content"] for m in session.messages if m["role"] == "user"], ["two"])
 
 
 class HandleApiErrorTest(unittest.TestCase):

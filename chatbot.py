@@ -47,6 +47,9 @@ def run(session, anthropic, input_fn=input, write=sys.stdout.write):
         write("claude> ")
         try:
             reply = session.send(user_text, on_text=write)
+        except KeyboardInterrupt:
+            write("\n[Reply interrupted.]\n")
+            continue
         except Exception as error:  # noqa: BLE001 - mapped to friendly messages below
             message = handle_api_error(error, anthropic)
             if message is None:
